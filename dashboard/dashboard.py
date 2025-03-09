@@ -2,11 +2,15 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import streamlit as st
+import os
 
 sns.set_theme(style='whitegrid')
 
+csv_file_path = os.path.join(os.path.dirname(
+    __file__), 'bike_sharing_merge_df.csv')
+
 # load data
-main_df = pd.read_csv("bike_sharing_merge_df.csv")
+main_df = pd.read_csv(csv_file_path)
 main_df['dteday'] = main_df['dteday'].apply(pd.to_datetime, format='%Y-%m-%d')
 # main_df.info()
 
@@ -110,7 +114,7 @@ with tab1:
         with col2:
             st.subheader('Raw Hourly Weather Metrics')
             st.dataframe(weather_hourly_df)
-        fig1, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 16))
+        fig1, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 10))
         if weather_metric_choice == 'temp':
             ax1.scatter(main_df['temp_daily'],
                         main_df['cnt_daily'], alpha=0.5)
