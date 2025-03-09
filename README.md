@@ -1,3 +1,5 @@
+# :bike: Analysis Bike Sharing :bar_chart:
+
 ## Setup Environment - Shell/Terminal
 
 ```
@@ -21,4 +23,4 @@ streamlit run dashboard/dashboard.py
 
 ## Access deployed streamlit
 
-[link](https://analysis-bike-sharing-by-arin.streamlit.app/)
+[analysis-bike-sharing-by-arin](https://analysis-bike-sharing-by-arin.streamlit.app/)
