@@ -20,7 +20,7 @@ def create_weather_daily_df(df):
         'cnt_daily': 'sum',
     }).reset_index()
     weather_daily.rename(columns={
-        'cnt_daily': 'total_rentals',
+        'cnt_daily': 'total users',
     }, inplace=True)
     return weather_daily
 
@@ -30,7 +30,7 @@ def create_weather_hourly_df(df):
         'cnt_hourly': 'sum',
     }).reset_index()
     weather_hourly.rename(columns={
-        'cnt_hourly': 'total_rentals',
+        'cnt_hourly': 'total users',
     }, inplace=True)
     return weather_hourly
 
@@ -38,67 +38,86 @@ def create_weather_hourly_df(df):
 def create_users_hourly_df(df):
     user_by_hour_df = df.groupby(by='hr')['cnt_hourly'].sum().reset_index()
     user_by_hour_df.rename(columns={
-        'cnt_hourly': 'total_rentals',
+        'cnt_hourly': 'total users',
         'hr': 'time'
     }, inplace=True)
     return user_by_hour_df
 
 
-def create_rfm_df(df):
+def categorize_weather(weather_code):
+    if weather_code == 1:
+        return 'Clear, Few clouds,'
+    elif weather_code == 2:
+        return 'Mist + Cloudy'
+    elif weather_code == 3:
+        return 'Light Snow, Light Rain, Thunderstorm'
+    elif weather_code == 4:
+        return ' Heavy Rain, Thunderstorm, Mist, Snow, Fog'
 
-    season_map = {1: "Spring", 2: "Summer", 3: "Fall", 4: "Winter"}
-    df['season_name'] = df['season_daily'].map(
-        season_map)
-    reference_date = df['dteday'].max()
 
-    season_rfm = []
+main_df['daily_weather_condition'] = main_df['weathersit_daily'].apply(
+    categorize_weather)
+main_df['hourly_weather_condition'] = main_df['weathersit_hourly'].apply(
+    categorize_weather)
 
-    for season_name, season_df in df.groupby(by='season_name'):
-        current_date = season_df['dteday'].max()
 
-        recency = (reference_date - current_date).days
-        frequency = season_df['dteday'].nunique()
-        monetary = season_df['cnt_daily'].sum()
+def create_categorize_users_daily_weather_df(df):
+    users_by_daily_weather = df.groupby('daily_weather_condition')[
+        'cnt_daily'].sum().reset_index()
 
-        season_rfm.append({
-            'season': season_name,
-            'recency': recency,
-            'frequency': frequency,
-            'monetary': monetary,
-        })
+    high_daily_user_threshold = users_by_daily_weather['cnt_daily'].median()
 
-    season_rfm_df = pd.DataFrame(season_rfm)
+    users_by_daily_weather['user_group'] = users_by_daily_weather['cnt_daily'].apply(
+        lambda x: 'Pengguna Tinggi' if x > high_daily_user_threshold else 'Pengguna Rendah'
+    )
+    users_by_daily_weather.rename(columns={
+        'daily_weather_condition': 'daily weathersit',
+        'cnt_daily': 'users count',
+        'user_group': 'category'
+    }, inplace=True)
+    return users_by_daily_weather
 
-    season_rfm_df['r_score'] = pd.qcut(season_rfm_df['recency'], 5, labels=[
-                                       5, 4, 3, 2, 1], duplicates='drop')
-    season_rfm_df['f_score'] = pd.qcut(season_rfm_df['frequency'], 5, labels=[
-                                       1, 2, 3, 4, 5], duplicates='drop')
-    season_rfm_df['m_score'] = pd.qcut(season_rfm_df['monetary'], 5, labels=[
-                                       1, 2, 3, 4, 5], duplicates='drop')
 
-    return season_rfm_df
+def create_categorize_users_hourly_weather_df(df):
+    users_by_hourly_weather = df.groupby('hourly_weather_condition')[
+        'cnt_hourly'].sum().reset_index()
+    high_hourly_user_threshold = users_by_hourly_weather['cnt_hourly'].median()
+    users_by_hourly_weather['user_group'] = users_by_hourly_weather['cnt_hourly'].apply(
+        lambda x: 'Pengguna Tinggi' if x > high_hourly_user_threshold else 'Pengguna Rendah'
+    )
+    users_by_hourly_weather.rename(columns={
+        'hourly_weather_condition': 'hourly weathersit',
+        'cnt_hourly': 'users count',
+        'user_group': 'category'
+    }, inplace=True)
+    return users_by_hourly_weather
 
 
 weather_daily_df = create_weather_daily_df(main_df)
 weather_hourly_df = create_weather_hourly_df(main_df)
 users_hourly_df = create_users_hourly_df(main_df)
-rfm_season_df = create_rfm_df(main_df)
+group_users_daily_weather_df = create_categorize_users_daily_weather_df(
+    main_df)
+group_users_hourly_weather_df = create_categorize_users_hourly_weather_df(
+    main_df)
+
 
 print(weather_daily_df.head())
 print(weather_hourly_df.head())
 print(users_hourly_df)
-print(rfm_season_df)
+print(group_users_daily_weather_df)
+print(group_users_hourly_weather_df)
 
 st.title(':bike: BIKE SHARING ANALYSIS :bar_chart:')
 st.write('This dashboard presents analysis bike rentals contains the hourly and daily count of rental bikes between the years 2011 and 2012 in the Capital bike share system with the corresponding weather and seasonal information.')
 
 tab1, tab2, tab3 = st.tabs(
-    ["Weather VS Users", "Time VS Users", "Season VS Users"])
+    ["Weather VS Users", "Time VS Users", "Clustering Weathersit"])
 
 
 with tab1:
     with st.container():
-        st.header("Hubungan berbagai metrik cuaca (Suhu (temp), Suhu yang Dirasakan (atemp), Kelembaban (hum), Kecepatan Angin (windspeed)) terhadap jumlah pengguna bike sharing")
+        st.header("Correlations Between Temperature (temp), Apparent Temperature (atemp), Humidity (hum), Windspeed, And Number of Users")
 
         weather_metric_choice = st.selectbox(
             "Choose a Weather Metric",
@@ -165,52 +184,59 @@ with tab1:
             ax2.set_title('Windspeed VS Users')
             st.pyplot(fig1)
 
-
 with tab2:
     with st.container():
-        st.header("Hubungan waktu (hr) terhadap jumlah pengguna bike sharing")
-        st.subheader('Raw Hourly Users Metrics')
-        st.dataframe(users_hourly_df)
+        st.header("Correlations Between Time (hr) and Number of Users")
 
-    fig2, ax3 = plt.subplots(figsize=(10, 6))
-    sns.lineplot(x=main_df['hr'], y=main_df['cnt_hourly'],
-                 marker='o', color='b', ax=ax3)
-    ax3.set_title('Jumlah Penyewaan Berdasarkan Waktu')
-    ax3.set_xlabel('Time')
-    ax3.set_ylabel('Users')
-    ax3.set_xticks(range(0, 24))
+        hour_range = st.slider("Select time range (hr)", 0, 23, (0, 23))
+        filtered_hourly_df = users_hourly_df[(users_hourly_df['time'] >= hour_range[0]) & (
+            users_hourly_df['time'] <= hour_range[1])]
 
-    st.pyplot(fig2)
+        st.write(f"Showing data for hours: {hour_range}")
+
+        st.subheader('Filtered Hourly Data')
+        st.dataframe(filtered_hourly_df)
+
+        fig2, ax3 = plt.subplots(figsize=(10, 6))
+        sns.lineplot(x=filtered_hourly_df['time'], y=filtered_hourly_df['total users'],
+                     marker='o', color='b', ax=ax3)
+        ax3.set_title('Total Rentals Hourly')
+        ax3.set_xlabel('Time')
+        ax3.set_ylabel('Users')
+        ax3.set_xticks(range(hour_range[0], hour_range[1] + 1))
+        st.pyplot(fig2)
 
 with tab3:
     with st.container():
-        st.header("Analisis RFM berdasarkan musim (season)")
-        st.dataframe(rfm_season_df)
+        st.header("Weathersit Clustering Based on Number of Users")
 
-        col3, col4, col5 = st.columns(3)
-        fig3, (ax4, ax5, ax6) = plt.subplots(1, 3, figsize=(18, 10))
+        weather_condition = st.selectbox(
+            "Select a weather condition type",
+            ['daily_weather_condition', 'hourly_weather_condition']
+        )
 
-        with col3:
-            st.subheader("Recency By Season")
-            sns.barplot(x='season', y='recency', data=rfm_season_df,
-                        palette='coolwarm', ax=ax4)
-            ax4.set_title('Recency by Season')
-            ax4.set_xlabel('Season')
-            ax4.set_ylabel('Recency (Days)')
+        condition_data = main_df.groupby(weather_condition)[
+            'cnt_daily' if weather_condition == 'daily_weather_condition' else 'cnt_hourly'].sum().reset_index()
+        st.subheader(f"Categorized Users by {weather_condition}")
+        st.dataframe(condition_data)
 
-        with col4:
-            st.subheader("Frequency By Season")
-            sns.barplot(x='season', y='frequency',
-                        data=rfm_season_df, palette='coolwarm', ax=ax5)
-            ax5.set_title('Frequency by Season')
-            ax5.set_xlabel('Season')
-            ax5.set_ylabel('Frequency (Number of Days)')
-
-        with col5:
-            st.subheader("Monetary By Season")
-            sns.barplot(x='season', y='monetary',
-                        data=rfm_season_df, palette='magma', ax=ax6)
-            ax6.set_title('Monetary by Season')
-            ax6.set_xlabel('Season')
-            ax6.set_ylabel('Monetary (Total Rental Count)')
+        fig3, (ax4, ax5) = plt.subplots(1, 2, figsize=(18, 10))
+        if weather_condition == 'daily_weather_condition':
+            ax4.bar(condition_data['daily_weather_condition'],
+                    condition_data['cnt_daily'], color='#ffafcc')
+            ax4.set_title('Daily Users Based on Weathersit')
+            ax4.set_xlabel('Weathersit')
+            ax4.set_ylabel('Daily Users')
+            ax4.set_xticklabels(
+                condition_data['daily_weather_condition'], rotation=45, ha='right')
+            ax4.set_ylim(0, max(condition_data['cnt_daily']) * 1.1)
+        elif weather_condition == 'hourly_weather_condition':
+            ax5.bar(condition_data['hourly_weather_condition'],
+                    condition_data['cnt_hourly'], color='skyblue')
+            ax5.set_title('Hourly Users Based on Weathersit')
+            ax5.set_xlabel('Weathersit')
+            ax5.set_ylabel('Hourly Users')
+            ax5.set_xticklabels(
+                condition_data['hourly_weather_condition'], rotation=45, ha='right')
+            ax5.set_ylim(0, max(condition_data['cnt_hourly']) * 1.1)
         st.pyplot(fig3)
