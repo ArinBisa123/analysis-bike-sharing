@@ -62,34 +62,48 @@ main_df['hourly_weather_condition'] = main_df['weathersit_hourly'].apply(
 
 
 def create_categorize_users_daily_weather_df(df):
-    users_by_daily_weather = df.groupby('daily_weather_condition')[
+    users_group_by_daily_weather = df.groupby('daily_weather_condition')[
         'cnt_daily'].sum().reset_index()
 
-    high_daily_user_threshold = users_by_daily_weather['cnt_daily'].median()
+    high_daily_user_threshold = users_group_by_daily_weather['cnt_daily'].median(
+    )
 
-    users_by_daily_weather['user_group'] = users_by_daily_weather['cnt_daily'].apply(
+    users_group_by_daily_weather['user_group'] = users_group_by_daily_weather['cnt_daily'].apply(
         lambda x: 'Pengguna Tinggi' if x > high_daily_user_threshold else 'Pengguna Rendah'
     )
-    users_by_daily_weather.rename(columns={
+    users_group_by_daily_weather.rename(columns={
         'daily_weather_condition': 'daily weathersit',
         'cnt_daily': 'users count',
         'user_group': 'category'
     }, inplace=True)
-    return users_by_daily_weather
+    return users_group_by_daily_weather
 
 
 def create_categorize_users_hourly_weather_df(df):
-    users_by_hourly_weather = df.groupby('hourly_weather_condition')[
+    users_group_by_hourly_weather = df.groupby('hourly_weather_condition')[
         'cnt_hourly'].sum().reset_index()
-    high_hourly_user_threshold = users_by_hourly_weather['cnt_hourly'].median()
-    users_by_hourly_weather['user_group'] = users_by_hourly_weather['cnt_hourly'].apply(
+    high_hourly_user_threshold = users_group_by_hourly_weather['cnt_hourly'].median(
+    )
+    users_group_by_hourly_weather['user_group'] = users_group_by_hourly_weather['cnt_hourly'].apply(
         lambda x: 'Pengguna Tinggi' if x > high_hourly_user_threshold else 'Pengguna Rendah'
     )
-    users_by_hourly_weather.rename(columns={
+    users_group_by_hourly_weather.rename(columns={
         'hourly_weather_condition': 'hourly weathersit',
         'cnt_hourly': 'users count',
         'user_group': 'category'
     }, inplace=True)
+    return users_group_by_hourly_weather
+
+
+def create_users_by_daily_weather(df):
+    users_by_daily_weather = df.groupby('daily_weather_condition')[
+        'cnt_daily'].sum().reset_index()
+    return users_by_daily_weather
+
+
+def create_users_by_hourly_weather(df):
+    users_by_hourly_weather = df.groupby('hourly_weather_condition')[
+        'cnt_hourly'].sum().reset_index()
     return users_by_hourly_weather
 
 
@@ -100,13 +114,16 @@ group_users_daily_weather_df = create_categorize_users_daily_weather_df(
     main_df)
 group_users_hourly_weather_df = create_categorize_users_hourly_weather_df(
     main_df)
-
+users_by_daily_weather_df = create_users_by_daily_weather(main_df)
+users_by_hourly_weather_df = create_users_by_hourly_weather(main_df)
 
 print(weather_daily_df.head())
 print(weather_hourly_df.head())
 print(users_hourly_df)
 print(group_users_daily_weather_df)
 print(group_users_hourly_weather_df)
+print(users_by_daily_weather_df)
+print(users_by_hourly_weather_df)
 
 st.title(':bike: BIKE SHARING ANALYSIS :bar_chart:')
 st.write('This dashboard presents analysis bike rentals contains the hourly and daily count of rental bikes between the years 2011 and 2012 in the Capital bike share system with the corresponding weather and seasonal information.')
@@ -212,31 +229,34 @@ with tab3:
 
         weather_condition = st.selectbox(
             "Select a weather condition type",
-            ['daily_weather_condition', 'hourly_weather_condition']
+            ['daily weather condition', 'hourly weather condition']
         )
+        if weather_condition == 'daily weather condition':
+            st.dataframe(group_users_daily_weather_df)
+        else:
+            st.dataframe(group_users_hourly_weather_df)
 
-        condition_data = main_df.groupby(weather_condition)[
-            'cnt_daily' if weather_condition == 'daily_weather_condition' else 'cnt_hourly'].sum().reset_index()
         st.subheader(f"Categorized Users by {weather_condition}")
-        st.dataframe(condition_data)
 
         fig3, (ax4, ax5) = plt.subplots(1, 2, figsize=(18, 10))
-        if weather_condition == 'daily_weather_condition':
-            ax4.bar(condition_data['daily_weather_condition'],
-                    condition_data['cnt_daily'], color='#ffafcc')
+        if weather_condition == 'daily weather condition':
+            ax4.bar(users_by_daily_weather_df['daily_weather_condition'],
+                    users_by_daily_weather_df['cnt_daily'], color='#ffafcc')
             ax4.set_title('Daily Users Based on Weathersit')
             ax4.set_xlabel('Weathersit')
             ax4.set_ylabel('Daily Users')
             ax4.set_xticklabels(
-                condition_data['daily_weather_condition'], rotation=45, ha='right')
-            ax4.set_ylim(0, max(condition_data['cnt_daily']) * 1.1)
-        elif weather_condition == 'hourly_weather_condition':
-            ax5.bar(condition_data['hourly_weather_condition'],
-                    condition_data['cnt_hourly'], color='skyblue')
+                users_by_daily_weather_df['daily_weather_condition'], rotation=45, ha='right')
+            ax4.set_ylim(
+                0, max(users_by_daily_weather_df['cnt_daily']) * 1.1)
+        elif weather_condition == 'hourly weather condition':
+            ax5.bar(users_by_hourly_weather_df['hourly_weather_condition'],
+                    users_by_hourly_weather_df['cnt_hourly'], color='skyblue')
             ax5.set_title('Hourly Users Based on Weathersit')
             ax5.set_xlabel('Weathersit')
             ax5.set_ylabel('Hourly Users')
             ax5.set_xticklabels(
-                condition_data['hourly_weather_condition'], rotation=45, ha='right')
-            ax5.set_ylim(0, max(condition_data['cnt_hourly']) * 1.1)
+                users_by_hourly_weather_df['hourly_weather_condition'], rotation=45, ha='right')
+            ax5.set_ylim(
+                0, max(users_by_hourly_weather_df['cnt_hourly']) * 1.1)
         st.pyplot(fig3)
