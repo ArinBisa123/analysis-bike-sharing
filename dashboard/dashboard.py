@@ -16,9 +16,8 @@ main_df['dteday'] = main_df['dteday'].apply(pd.to_datetime, format='%Y-%m-%d')
 
 
 def create_weather_daily_df(df):
-    weather_daily = df.groupby(['temp_daily', 'atemp_daily', 'hum_daily', 'windspeed_daily']).agg({
-        'cnt_daily': 'sum',
-    }).reset_index()
+    weather_daily = df.groupby(
+        ['temp_daily', 'atemp_daily', 'hum_daily', 'windspeed_daily']).agg({'cnt_daily': 'sum'}).reset_index()
     weather_daily.rename(columns={
         'cnt_daily': 'total users',
     }, inplace=True)
@@ -26,9 +25,8 @@ def create_weather_daily_df(df):
 
 
 def create_weather_hourly_df(df):
-    weather_hourly = df.groupby(['temp_hourly', 'atemp_hourly', 'hum_hourly', 'windspeed_hourly']).agg({
-        'cnt_hourly': 'sum',
-    }).reset_index()
+    weather_hourly = df.groupby(
+        ['temp_hourly', 'atemp_hourly', 'hum_hourly', 'windspeed_hourly']).agg({'cnt_hourly': 'sum'}).reset_index()
     weather_hourly.rename(columns={
         'cnt_hourly': 'total users',
     }, inplace=True)
@@ -152,50 +150,50 @@ with tab1:
             st.dataframe(weather_hourly_df)
         fig1, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 10))
         if weather_metric_choice == 'temp':
-            ax1.scatter(main_df['temp_daily'],
-                        main_df['cnt_daily'], alpha=0.5)
+            ax1.scatter(weather_daily_df['temp_daily'],
+                        weather_daily_df['total users'], alpha=0.5)
             ax1.set_xlabel('Daily Temperature')
             ax1.set_ylabel('Daily Users')
             ax1.set_title('Temperature VS Users')
-            ax2.scatter(main_df['temp_hourly'],
-                        main_df['cnt_hourly'], alpha=0.5, color='green')
+            ax2.scatter(weather_hourly_df['temp_hourly'],
+                        weather_hourly_df['total users'], alpha=0.5, color='green')
             ax2.set_xlabel('Hourly Temperature')
             ax2.set_ylabel('Hourly Users')
             ax2.set_title('Temperature VS Users')
             st.pyplot(fig1)
         elif weather_metric_choice == 'atemp':
-            ax1.scatter(main_df['atemp_daily'],
-                        main_df['cnt_daily'], alpha=0.5)
+            ax1.scatter(weather_daily_df['atemp_daily'],
+                        weather_daily_df['total users'], alpha=0.5)
             ax1.set_xlabel('Daily Apparent Temperature')
             ax1.set_ylabel('Daily Users')
             ax1.set_title('Apparent Temperature VS Users')
-            ax2.scatter(main_df['atemp_hourly'],
-                        main_df['cnt_hourly'], alpha=0.5, color='green')
+            ax2.scatter(weather_hourly_df['atemp_hourly'],
+                        weather_hourly_df['total users'], alpha=0.5, color='green')
             ax2.set_xlabel('Hourly Apparent Temperature')
             ax2.set_ylabel('Hourly Users')
             ax2.set_title('Apparent Temperature VS Users')
             st.pyplot(fig1)
         elif weather_metric_choice == 'hum':
-            ax1.scatter(main_df['hum_daily'],
-                        main_df['cnt_daily'], alpha=0.5)
+            ax1.scatter(weather_daily_df['hum_daily'],
+                        weather_daily_df['total users'], alpha=0.5)
             ax1.set_xlabel('Daily Humidity')
             ax1.set_ylabel('Daily Users')
             ax1.set_title('Humidity VS Users')
-            ax2.scatter(main_df['hum_hourly'],
-                        main_df['cnt_hourly'], alpha=0.5, color='green')
+            ax2.scatter(weather_hourly_df['hum_hourly'],
+                        weather_hourly_df['total users'], alpha=0.5, color='green')
             ax2.set_xlabel('Hourly Humidity')
             ax2.set_ylabel('Hourly Users')
             ax2.set_title('Humidity VS Users')
             st.pyplot(fig1)
 
         elif weather_metric_choice == 'windspeed':
-            ax1.scatter(main_df['atemp_daily'],
-                        main_df['cnt_daily'], alpha=0.5)
+            ax1.scatter(weather_daily_df['windspeed_daily'],
+                        weather_daily_df['total users'], alpha=0.5)
             ax1.set_xlabel('Daily Windspeed')
             ax1.set_ylabel('Daily Users')
             ax1.set_title('Windspeed VS Users')
-            ax2.scatter(main_df['atemp_hourly'],
-                        main_df['cnt_hourly'], alpha=0.5, color='green')
+            ax2.scatter(weather_hourly_df['windspeed_hourly'],
+                        weather_hourly_df['total users'], alpha=0.5, color='green')
             ax2.set_xlabel('Hourly Windspeed')
             ax2.set_ylabel('Hourly Users')
             ax2.set_title('Windspeed VS Users')
@@ -238,7 +236,7 @@ with tab3:
 
         st.subheader(f"Categorized Users by {weather_condition}")
 
-        fig3, (ax4, ax5) = plt.subplots(1, 2, figsize=(18, 10))
+        fig3, ax4 = plt.subplots(figsize=(18, 10))
         if weather_condition == 'daily weather condition':
             ax4.bar(users_by_daily_weather_df['daily_weather_condition'],
                     users_by_daily_weather_df['cnt_daily'], color='#ffafcc')
@@ -250,13 +248,13 @@ with tab3:
             ax4.set_ylim(
                 0, max(users_by_daily_weather_df['cnt_daily']) * 1.1)
         elif weather_condition == 'hourly weather condition':
-            ax5.bar(users_by_hourly_weather_df['hourly_weather_condition'],
+            ax4.bar(users_by_hourly_weather_df['hourly_weather_condition'],
                     users_by_hourly_weather_df['cnt_hourly'], color='skyblue')
-            ax5.set_title('Hourly Users Based on Weathersit')
-            ax5.set_xlabel('Weathersit')
-            ax5.set_ylabel('Hourly Users')
-            ax5.set_xticklabels(
+            ax4.set_title('Hourly Users Based on Weathersit')
+            ax4.set_xlabel('Weathersit')
+            ax4.set_ylabel('Hourly Users')
+            ax4.set_xticklabels(
                 users_by_hourly_weather_df['hourly_weather_condition'], rotation=45, ha='right')
-            ax5.set_ylim(
+            ax4.set_ylim(
                 0, max(users_by_hourly_weather_df['cnt_hourly']) * 1.1)
         st.pyplot(fig3)
